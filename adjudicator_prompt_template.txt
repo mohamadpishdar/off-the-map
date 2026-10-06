@@ -1,0 +1,102 @@
+You are an expert smart-contract security auditor acting as an
+independent adjudicator. A weaker LLM pipeline flagged the finding below
+as NOT detectable by any default detector of nine automated tools. Form
+your OWN judgment of the finding's mechanism; do not grade the wording
+of the earlier justification.
+
+DEFINITION OF "COVERED": a finding is covered if at least one catalog
+entry, run with its default configuration and WITHOUT any user-written
+property or specification, would plausibly flag the root cause of this
+finding. Spec-driven tools (Echidna, Certora) do not count as covering a
+finding just because a user could write a property for it.
+
+FULL DETECTOR CATALOG (238 entries; [CODE] = has a vulnerable code
+example, [TEXT] = description only):
+<<FULL_CATALOG>>
+
+FINDING:
+Title: <<BUG_TITLE>>
+(If the title and the original audit text describe different issues,
+judge the issue described in the text and say so in "mechanism".)
+Source report: <<SOURCE_PDF>>
+Original audit text (an automatically cut excerpt of the report; it may be
+empty, may start or end mid-sentence, and may also contain neighbouring
+findings, tables, or page headers. Use only the part that describes THIS
+finding. If the excerpt does not describe this finding at all, ignore it
+and judge from the title and justification):
+<<ORIGINAL_FINDING_TEXT>>
+Earlier pipeline's justification (context only, may be wrong):
+<<JUSTIFICATION>>
+
+PRIORITY CANDIDATES (check these first; they are text-similarity
+matches plus entries cited earlier, but the true match may be elsewhere
+in the full catalog):
+<<CANDIDATE_IDS>>
+
+Answer the following in order.
+
+Q1. SCOPE. Is this a security-relevant defect in smart-contract code?
+Answer NOT_A_VULNERABILITY if it is informational, gas, style, or
+documentation only. Answer OUT_OF_PAPER_SCOPE if the defect lives outside
+smart-contract code (off-chain service, ZK circuit, VM interpreter,
+native library) in any language. A Cairo, Clarity, Move, Rust, or other
+non-EVM smart contract is still smart-contract code: answer IN_SCOPE for
+it and handle the language in Q4. Otherwise answer IN_SCOPE.
+
+Q2. REPORT EVIDENCE. From the original audit text, if present, extract:
+- the severity the auditors assigned, or "not stated"
+- whether the text says the issue was found by an automated tool, and
+  which one, or "not stated". Note separately whether that tool used its
+  default detectors or a user-written specification/property (e.g. a
+  Certora rule, an Echidna property, a custom invariant)
+
+Q3. MECHANISM. In one or two sentences, state the root cause in
+mechanical terms: what state, input, or call sequence leads to the harm.
+
+Q4. TYPE. Classify the finding as exactly one of:
+- NON_EVM_LANGUAGE: the contract is not Solidity, Vyper, or EVM bytecode
+- MULTI_COMPONENT: the root cause only appears across several contracts,
+  chains, or an off-chain component
+- SINGLE_CONTRACT: the root cause is visible within one contract,
+  including single-contract business-logic errors
+Also state how you know the language: "stated in text", "inferred from
+file or report name", or "assumed from background knowledge".
+
+Q5. MATCHING. For each priority candidate, and for any other catalog
+entry you consider relevant, write the entry ID, then SAME,
+SAME_POSSIBLE, or DIFFERENT, then the concrete mechanical reason. An entry is SAME only if it
+targets this finding's root cause; a detector that would merely fire on
+the same line for an unrelated reason (e.g. an unchecked return value on
+a transfer whose real bug is the wrong amount) is DIFFERENT. Judge
+[TEXT]-only entries cautiously: if the description is too general to
+rule out, use SAME_POSSIBLE rather than DIFFERENT.
+
+Q6. VERDICT. Apply these rules in order and stop at the first that
+holds:
+1. EXCLUDED: Q1 was NOT_A_VULNERABILITY or OUT_OF_PAPER_SCOPE
+2. TOOL_NOT_APPLICABLE: Q4 was NON_EVM_LANGUAGE
+3. COVERED: any entry in Q5 is SAME, or Q2 says a tool found the issue
+   with its default detectors. Detection through a user-written
+   specification or property does NOT make a finding COVERED.
+4. LIKELY_GAP: no entry is SAME, but at least one is SAME_POSSIBLE, or
+   you cannot determine the mechanism itself from the information given.
+   An empty original audit text alone is NOT a reason for LIKELY_GAP if
+   the title and justification make the mechanism clear.
+5. CONFIRMED_GAP: every relevant entry is DIFFERENT with a concrete
+   mechanical reason
+
+Respond with ONLY this JSON object, no text before or after it:
+{
+  "excerpt_relevant": "yes | partly | no | empty",
+  "scope": "IN_SCOPE | NOT_A_VULNERABILITY | OUT_OF_PAPER_SCOPE",
+  "severity": "...",
+  "found_by_tool": "... or not stated",
+  "mechanism": "...",
+  "type": "NON_EVM_LANGUAGE | MULTI_COMPONENT | SINGLE_CONTRACT",
+  "language_evidence": "stated in text | inferred from file or report name | assumed from background knowledge",
+  "matching": [
+    {"id": "TOOL-xxx", "judgment": "SAME | SAME_POSSIBLE | DIFFERENT", "reason": "..."}
+  ],
+  "covered_by": "TOOL-xxx or null (fill this whenever an entry is SAME, even if the verdict is EXCLUDED)",
+  "verdict": "EXCLUDED | TOOL_NOT_APPLICABLE | COVERED | LIKELY_GAP | CONFIRMED_GAP"
+}
